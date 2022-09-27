@@ -1,0 +1,121 @@
+#include "ISerializable.h"
+
+using namespace std;
+
+class TargetJson : public ISerializable {
+private:
+    int id;
+    string name;
+    double latitude, longitude;
+    float altitude;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar& BOOST_SERIALIZATION_NVP(id);
+        ar& BOOST_SERIALIZATION_NVP(name);
+        ar& BOOST_SERIALIZATION_NVP(latitude);
+        ar& BOOST_SERIALIZATION_NVP(longitude);
+        ar& BOOST_SERIALIZATION_NVP(altitude);
+    }
+
+public:
+    //Default Constructor
+    TargetJson() {};
+
+    //Constructor
+    TargetJson(int idNumber, string n, double la, double lo, float al) {
+        this->id = idNumber;
+        this->name = n;
+        this->latitude = la;
+        this->longitude = lo;
+        this->altitude = al;
+    }
+
+    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, TargetJson const& c){
+        jv = {
+           { "id" , c.id },
+           { "name", c.name },
+           { "latitude", c.latitude },
+           { "longitude", c.longitude },
+           { "altitude", c.altitude }
+        };
+    }
+
+    // This helper function deduces the type and assigns the value with the matching key
+    template<class T>
+    void extract(boost::json::object const& obj, T& t, boost::json::string_view key){
+        t = boost::json::value_to<T>(obj.at(key));
+    }
+
+    TargetJson tag_invoke(boost::json::value_to_tag< TargetJson >, boost::json::value const& jv){
+        TargetJson restore;
+        boost::json::object const& obj = jv.as_object();
+        extract(obj, restore.id, "id");
+        extract(obj, restore.name, "name");
+        extract(obj, restore.latitude, "latitude");
+        extract(obj, restore.longitude, "longitude");
+        extract(obj, restore.altitude, "altitude");
+        return restore;
+    }
+
+    string serialize() {
+        TargetJson t;
+        t.id = id;
+        t.name = name;
+        t.latitude = latitude;
+        t.longitude = longitude;
+        t.altitude = altitude;
+
+        TargetJson* ptr = &t;
+
+        string JSONstring = boost::json::serialize(boost::json::value_from(t));
+        std::ofstream file("filename");
+        boost::archive::text_oarchive oa(file);
+        oa & ptr;
+
+        return JSONstring;
+    }
+
+    void deserialize(string JSONstring) {
+        TargetJson* restore;
+        std::ifstream files("filename");
+        boost::archive::text_iarchive ia(files);
+        ia& restore;
+
+        cout << "Getting from JSON String\n";
+        cout << JSONstring << endl;
+        cout << "Getting from file\n";
+        cout << restore->getId() << ", " << restore->getName()
+            << ", " << restore->getLatitude() << ", " << restore->getLongitude()
+            << ", " << restore->getAltitude();
+        
+    }
+
+    string getName() {
+        return name;
+    }
+
+    int getId() {
+        return id;
+    }
+
+    double getLatitude() {
+        return latitude;
+    }
+
+    double getLongitude() {
+        return longitude;
+    }
+
+    float getAltitude() {
+        return altitude;
+    }
+};
+
+int main()
+{
+    TargetJson target{ 2,"Williams",4.5,4.5, 3.4f };
+    target.serialize();
+    target.deserialize(target.serialize());
+}
