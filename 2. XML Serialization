@@ -1,0 +1,152 @@
+
+#include "ISerilizable.h"
+
+using namespace std;
+
+class TargetXml : public ISerializable {
+private:
+    int id;
+    string name;
+    double latitude, longitude;
+    float altitude;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar& BOOST_SERIALIZATION_NVP(id);
+        ar& BOOST_SERIALIZATION_NVP(name);
+        ar& BOOST_SERIALIZATION_NVP(latitude);
+        ar& BOOST_SERIALIZATION_NVP(longitude);
+        ar& BOOST_SERIALIZATION_NVP(altitude);
+    }
+
+public:
+    //Default Constructor
+    TargetXml() {};
+
+    //Constructor
+    TargetXml(int idNumber, string n, double la, double lo, float al) {
+        this->id = idNumber;
+        this->name = n;
+        this->latitude = la;
+        this->longitude = lo;
+        this->altitude = al;
+    }
+
+    string serialize() {
+        string XMLstring = to_string(id) + ", " + name + ", " + to_string(latitude)
+            + ", " + to_string(longitude) + ", " + to_string(altitude);
+        std::ofstream file("filename.xml");
+        boost::archive::xml_oarchive oa(file);
+
+        TargetXml t;
+        t.id = 1;
+        t.name = "Lizzie";
+        t.latitude = 2.2;
+        t.longitude = 3.3;
+        t.altitude = 4.4f;
+
+        oa& BOOST_SERIALIZATION_NVP(t);
+        return XMLstring;
+    }
+
+    void deserialize(string filename) {
+        std::ifstream file(filename);
+        boost::archive::xml_iarchive ia(file);
+        TargetXml restore;
+        ia& BOOST_SERIALIZATION_NVP(restore);
+        cout << restore.getId() << ", " << restore.getName()
+            << ", " << restore.getLatitude() << ", " << restore.getLongitude()
+            << ", " << restore.getAltitude() << endl;
+    }
+
+    string getName() {
+        return name;
+    }
+
+    int getId() {
+        return id;
+    }
+
+    double getLatitude() {
+        return latitude;
+    }
+
+    double getLongitude() {
+        return longitude;
+    }
+
+    float getAltitude() {
+        return altitude;
+    }
+
+    /*
+        //Serializing
+        friend class boost::serialization::access;
+        template<class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            ar& BOOST_SERIALIZATION_NVP(id);
+            ar& BOOST_SERIALIZATION_NVP(name);
+            ar& BOOST_SERIALIZATION_NVP(latitude);
+            ar& BOOST_SERIALIZATION_NVP(longitude);
+            ar& BOOST_SERIALIZATION_NVP(altitude);
+        }
+    */
+    /* Second Try
+    string serialize() {
+        string XMLstring = to_string(id) + ", " + name + ", " + to_string(latitude)
+            + ", " + to_string(longitude) + ", " + to_string(altitude);
+        std::ofstream ofs("filename.xml");
+        assert(ofs.good());
+        unsigned int flags = boost::archive::no_header;
+        boost::archive::xml_oarchive oa(ofs);
+        oa << BOOST_SERIALIZATION_NVP(id);
+        oa << BOOST_SERIALIZATION_NVP(name);
+        oa << BOOST_SERIALIZATION_NVP(latitude);
+        oa << BOOST_SERIALIZATION_NVP(longitude);
+        oa << BOOST_SERIALIZATION_NVP(altitude);
+        cout << XMLstring << endl;
+        return XMLstring;
+    }
+
+    void deserialize(string filename) {
+        std::ifstream ifs(filename);
+        assert(ifs.good());
+        boost::archive::xml_iarchive ia(ifs);
+
+        // restore the schedule from the archive
+        // TargetXml restore;
+        //ia >> BOOST_SERIALIZATION_NVP(restore);
+    }
+    */
+
+};
+
+int main() {
+    /*
+    // create and open a character archive for output
+    std::ofstream outFile("filename.xml");
+
+    // create class instance
+    TargetXml target(1, "Jessie James", 5.5, 6.0, 100.5f);
+
+    // save data to archive
+    unsigned int flags = boost::archive::no_header;
+    boost::archive::xml_oarchive oa(outFile,flags);
+    oa << BOOST_SERIALIZATION_NVP(target);
+    */
+
+    //TargetXml target(1, "Jessie James", 5.5, 6.0, 100.5f);
+    //target.serialize();
+    //const string Files = "filename.xml";
+    //TargetXml restoreTarget;
+    //restoreTarget.deserialize(Files);
+
+
+    TargetXml target;
+    target.serialize();
+    target.deserialize("filename.xml");
+
+
+    return 0;
+}
