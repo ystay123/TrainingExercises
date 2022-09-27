@@ -1,5 +1,6 @@
 #include "ISerializable.h"
 #include <vector>
+#include <boost/serialization/vector.hpp>
 
 using namespace std;
 
@@ -9,20 +10,30 @@ private:
 	double longitude;
 	float altitude;
 
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar& BOOST_SERIALIZATION_NVP(latitude);
+        ar& BOOST_SERIALIZATION_NVP(longitude);
+        ar& BOOST_SERIALIZATION_NVP(altitude);
+    }
+
 public:
+    Waypoint() {};
+
     Waypoint(double la, double lo, float al) {
         this->latitude = la;
         this->longitude = lo;
         this->altitude = al;
     }
-    friend std::ostream& operator<<(std::ostream& o, Waypoint n);
+    friend ostream& operator<<(ostream& o, Waypoint n);
 };
 
 class RouteJson : public ISerializable {
 private :
 	int id;
 	string name;
-	std::vector<Waypoint> waypoints;
+	vector<Waypoint> waypoints;
 
     friend class boost::serialization::access;
     template<class Archive>
@@ -34,20 +45,21 @@ private :
 
 public:
     RouteJson() {};
+
     //Constructor
-    RouteJson(int idNumber, string n, std::vector<Waypoint> points) {
+    RouteJson(int idNumber, string n, vector<Waypoint> points) {
         this->id = idNumber;
         this->name = n;
         this->waypoints = points;
     }
 
-
-    friend void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, RouteJson const& c) {
+    template< class T >
+    friend void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, RouteJson const &c) {
 
         jv ={
-           { "id" , c.id },
-           { "name", c.name },
-           { "waypoints", c.waypoints}
+           { "id" , c.id},
+           { "name", c.name},
+           { "waypoints", c.waypoints }
         };
     }
 
@@ -58,7 +70,7 @@ public:
     }
 
     template<class T>
-    RouteJson tag_invoke(boost::json::value_to_tag< RouteJson >, boost::json::value const& jv) {
+    RouteJson tag_invoke(boost::json::value_to_tag< RouteJson >, boost::json::value const &jv) {
         RouteJson restore;
         boost::json::object const& obj = jv.as_object();
         extract(obj, restore.id, "id");
@@ -75,17 +87,19 @@ public:
 
         RouteJson* ptr = &t;
 
-        string JSONstring = boost::json::serialize(boost::json::value_from(t));
-        std::ofstream file("filename");
+        //string JSONstring = boost::json::serialize(boost::json::value_from(t));
+        string JSONstring = to_string(id) + ", " + name + ", ";
+
+        ofstream file("filename");
         boost::archive::text_oarchive oa(file);
-        oa& ptr;
+        oa & ptr;
 
         return JSONstring;
     }
 
     void deserialize(string JSONstring) {
         RouteJson* restore;
-        std::ifstream files("filename");
+        ifstream files("filename");
         boost::archive::text_iarchive ia(files);
         ia& restore;
 
@@ -110,7 +124,7 @@ public:
     }
 };
 
-std::ostream& operator<<(std::ostream& o, Waypoint n)
+ostream& operator<<(ostream& o, Waypoint n)
 {
     o << "(" << n.latitude << "," << n.longitude << "," << n.altitude << ") ";
     return o;
