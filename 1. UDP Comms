@@ -1,0 +1,87 @@
+#include <boost/asio.hpp>
+#include <iostream>
+#include <vector>
+
+std::string ipAddress ="";
+int destinationPort =0;
+std::vector<uint8_t> message = {};
+
+class IUDP {
+public:
+    IUDP(){};
+
+    void init(int listenPort) {
+        //Setting up the IP address , port number and message
+        ipAddress = "127.0.0.1";
+        destinationPort = listenPort;
+        message = { 72,101,108,108, 111, 32, 87,111,114,108,100 };
+    }
+
+    void send(std::string ip, int destPort, std::vector <uint8_t> message) {
+        try
+        {
+            boost::asio::io_context io_context;
+            //Opening port and ip address
+            boost::asio::ip::udp::socket socket{ io_context };
+            socket.open(boost::asio::ip::udp::v4());
+            //Sending to server
+            socket.send_to(
+                boost::asio::buffer(message),
+                boost::asio::ip::udp::endpoint{ boost::asio::ip::make_address(ip), uint_least16_t(destPort) });
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+    }
+
+    std::vector<uint8_t> receive() {
+        try
+        {
+            std::cout << "Receiving Data from Client\n";
+            boost::asio::io_context io_context;
+            //Opening port and ip address
+            boost::asio::ip::udp::socket socket(
+                io_context,
+                boost::asio::ip::udp::endpoint{ boost::asio::ip::udp::v4(), 3303 });
+
+            boost::asio::ip::udp::endpoint client;
+            //Declaring a vector to contain message
+            std::vector<uint8_t> recv_str(255);
+            //Receiving from client
+            socket.receive_from(
+                boost::asio::buffer(recv_str), client);
+            for (int i = 0; i < recv_str.size(); i++) {
+                std::cout << recv_str[i];
+            }
+            return recv_str;
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+};
+
+
+
+int main()
+{
+
+    IUDP * iudps = new IUDP;
+    iudps->init(3303);
+    std::thread t1(&IUDP::receive, iudps);
+    std::thread t2(&IUDP::send, iudps, ipAddress,destinationPort,message);
+    t1.join();
+    t2.join();
+
+    /*
+    IUDP iudps;
+
+    iudps.init(3303);
+    iudps.receive();
+    iudps.send(ipAddress, destinationPort, message);
+    */
+    return 0;
+}
+
